@@ -1,0 +1,314 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import MoodSelector from '@/components/MoodSelector';
+import { AttendanceRecord, MoodLevel, MOOD_OPTIONS } from '@/types/attendance';
+import { Lang, translations } from '@/i18n/translations';
+
+const STORAGE_KEY = 'attendance_records';
+const LANG_KEY = 'attendance_lang';
+
+function getToday(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function formatTime(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString('ja-JP', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDate(dateStr: string, lang: Lang): string {
+  const [y, m, d] = dateStr.split('-');
+  if (lang === 'ja') return `${y}年${m}月${d}日`;
+  const date = new Date(`${dateStr}T00:00:00`);
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function getMoodEmoji(level: MoodLevel): string {
+  return MOOD_OPTIONS.find((o) => o.level === level)!.emoji;
+}
+
+export default function Home() {
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [lang, setLang] = useState<Lang>('ja');
+  const [clockInMood, setClockInMood] = useState<MoodLevel | null>(null);
+  const [clockInMessage, setClockInMessage] = useState('');
+  const [clockOutMood, setClockOutMood] = useState<MoodLevel | null>(null);
+  const [clockOutMessage, setClockOutMessage] = useState('');
+  const [now, setNow] = useState(new Date());
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const storedRecords = localStorage.getItem(STORAGE_KEY);
+    if (storedRecords) setRecords(JSON.parse(storedRecords));
+    const storedLang = localStorage.getItem(LANG_KEY) as Lang | null;
+    if (storedLang) setLang(storedLang);
+
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const t = translations[lang];
+  const today = getToday();
+  const todayRecord = records.find((r) => r.date === today);
+  const hasClockedIn = !!todayRecord?.clockIn;
+  const hasClockedOut = !!todayRecord?.clockOut;
+  const pastRecords = records.filter((r) => r.date !== today);
+
+  function toggleLang() {
+    const next: Lang = lang === 'ja' ? 'en' : 'ja';
+    setLang(next);
+    localStorage.setItem(LANG_KEY, next);
+  }
+
+  function saveRecords(next: AttendanceRecord[]) {
+    setRecords(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  }
+
+  function handleClockIn() {
+    if (!clockInMood || !clockInMessage.trim()) return;
+    const record: AttendanceRecord = {
+      id: crypto.randomUUID(),
+      date: today,
+      clockIn: {
+        time: new Date().toISOString(),
+        mood: clockInMood,
+        message: clockInMessage.trim(),
+      },
+    };
+    saveRecords([record, ...records]);
+    setClockInMood(null);
+    setClockInMessage('');
+  }
+
+  function handleClockOut() {
+    if (!clockOutMood || !clockOutMessage.trim() || !todayRecord) return;
+    const updated: AttendanceRecord = {
+      ...todayRecord,
+      clockOut: {
+        time: new Date().toISOString(),
+        mood: clockOutMood,
+        message: clockOutMessage.trim(),
+      },
+    };
+    saveRecords(records.map((r) => (r.id === todayRecord.id ? updated : r)));
+    setClockOutMood(null);
+    setClockOutMessage('');
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-10">
+        <div className="max-w-xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-gray-800">{t.appName}</h1>
+            {mounted && (
+              <p className="text-sm text-gray-500">{formatDate(today, lang)}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {mounted && (
+              <p className="text-2xl font-mono font-bold text-indigo-600" suppressHydrationWarning>
+                {now.toLocaleTimeString('ja-JP', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                })}
+              </p>
+            )}
+            <button
+              onClick={toggleLang}
+              className="text-sm font-semibold px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-indigo-300 hover:text-indigo-600 transition-colors"
+            >
+              {t.toggleLang}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-xl mx-auto px-4 py-6 space-y-5">
+        {/* 出勤前: 出勤フォーム */}
+        {!hasClockedIn && (
+          <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+            <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+              <span>🌅</span> {t.clockIn.title}
+            </h2>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-3">{t.clockIn.moodQuestion}</p>
+              <MoodSelector
+                selected={clockInMood}
+                onChange={setClockInMood}
+                moodLabels={t.moods}
+              />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500 mb-2">{t.clockIn.messageLabel}</p>
+              <textarea
+                value={clockInMessage}
+                onChange={(e) => setClockInMessage(e.target.value)}
+                placeholder={t.clockIn.messagePlaceholder}
+                rows={2}
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              />
+            </div>
+            <button
+              onClick={handleClockIn}
+              disabled={!clockInMood || !clockInMessage.trim()}
+              className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
+            >
+              {t.clockIn.button}
+            </button>
+          </div>
+        )}
+
+        {/* 出勤後・退勤前 */}
+        {hasClockedIn && !hasClockedOut && todayRecord && (
+          <>
+            <div className="bg-indigo-600 text-white rounded-2xl p-4 flex items-center gap-4">
+              <span className="text-4xl">{getMoodEmoji(todayRecord.clockIn.mood)}</span>
+              <div>
+                <p className="text-xs opacity-75 font-medium">{t.status.clockedIn}</p>
+                <p className="text-lg font-bold">{formatTime(todayRecord.clockIn.time)}</p>
+                <p className="text-sm opacity-90 mt-0.5">
+                  &ldquo;{todayRecord.clockIn.message}&rdquo;
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-6 space-y-5">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <span>🌙</span> {t.clockOut.title}
+              </h2>
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-3">{t.clockOut.moodQuestion}</p>
+                <MoodSelector
+                  selected={clockOutMood}
+                  onChange={setClockOutMood}
+                  moodLabels={t.moods}
+                />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-2">{t.clockOut.messageLabel}</p>
+                <textarea
+                  value={clockOutMessage}
+                  onChange={(e) => setClockOutMessage(e.target.value)}
+                  placeholder={t.clockOut.messagePlaceholder}
+                  rows={2}
+                  className="w-full border border-gray-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                />
+              </div>
+              <button
+                onClick={handleClockOut}
+                disabled={!clockOutMood || !clockOutMessage.trim()}
+                className="w-full bg-purple-600 text-white py-3 rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-purple-700 transition-colors"
+              >
+                {t.clockOut.button}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* 退勤完了: 今日のサマリー */}
+        {hasClockedIn && hasClockedOut && todayRecord?.clockOut && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h2 className="text-base font-semibold text-gray-700 mb-4">{t.status.todayRecord}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-indigo-50 rounded-xl p-4">
+                <p className="text-xs text-indigo-600 font-semibold mb-2">
+                  🌅 {t.status.clockInLabel}
+                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">{getMoodEmoji(todayRecord.clockIn.mood)}</span>
+                  <div>
+                    <p className="font-bold text-gray-800">{formatTime(todayRecord.clockIn.time)}</p>
+                    <p className="text-xs text-gray-500">{t.moods[todayRecord.clockIn.mood]}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600">&ldquo;{todayRecord.clockIn.message}&rdquo;</p>
+              </div>
+              <div className="bg-purple-50 rounded-xl p-4">
+                <p className="text-xs text-purple-600 font-semibold mb-2">
+                  🌙 {t.status.clockOutLabel}
+                </p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">{getMoodEmoji(todayRecord.clockOut.mood)}</span>
+                  <div>
+                    <p className="font-bold text-gray-800">
+                      {formatTime(todayRecord.clockOut.time)}
+                    </p>
+                    <p className="text-xs text-gray-500">{t.moods[todayRecord.clockOut.mood]}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-600">
+                  &ldquo;{todayRecord.clockOut.message}&rdquo;
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 過去の記録 */}
+        {pastRecords.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+              {t.status.pastRecords}
+            </h2>
+            {pastRecords.slice(0, 10).map((record) => (
+              <div key={record.id} className="bg-white rounded-2xl shadow-sm p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="font-semibold text-gray-700 text-sm">
+                    {formatDate(record.date, lang)}
+                  </p>
+                  {record.clockOut ? (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                      {t.status.completed}
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">
+                      {t.status.missingClockOut}
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-start gap-2">
+                    <span className="text-xl">{getMoodEmoji(record.clockIn.mood)}</span>
+                    <div>
+                      <p className="text-xs text-indigo-600 font-medium">
+                        {t.status.clockInLabel} {formatTime(record.clockIn.time)}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        &ldquo;{record.clockIn.message}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+                  {record.clockOut && (
+                    <div className="flex items-start gap-2">
+                      <span className="text-xl">{getMoodEmoji(record.clockOut.mood)}</span>
+                      <div>
+                        <p className="text-xs text-purple-600 font-medium">
+                          {t.status.clockOutLabel} {formatTime(record.clockOut.time)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          &ldquo;{record.clockOut.message}&rdquo;
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
