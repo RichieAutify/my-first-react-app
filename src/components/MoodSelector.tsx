@@ -1,17 +1,18 @@
 'use client';
 
-import { MoodLevel, MOOD_OPTIONS } from '@/types/attendance';
+import { MoodLevel, MoodOption } from '@/types/attendance';
 
 interface Props {
   selected: MoodLevel | null;
   onChange: (mood: MoodLevel) => void;
-  moodLabels: Record<MoodLevel, string>;
+  options: MoodOption[];
+  labels: Record<MoodLevel, string>;
 }
 
-export default function MoodSelector({ selected, onChange, moodLabels }: Props) {
+export default function MoodSelector({ selected, onChange, options, labels }: Props) {
   return (
     <div className="flex gap-2 justify-center">
-      {MOOD_OPTIONS.map(({ level, emoji }) => (
+      {options.map(({ level, emoji }) => (
         <button
           key={level}
           type="button"
@@ -23,7 +24,7 @@ export default function MoodSelector({ selected, onChange, moodLabels }: Props) 
           }`}
         >
           <span className="text-3xl">{emoji}</span>
-          <span className="text-xs mt-1 text-gray-600 font-medium">{moodLabels[level]}</span>
+          <span className="text-xs mt-1 text-gray-600 font-medium">{labels[level]}</span>
         </button>
       ))}
     </div>

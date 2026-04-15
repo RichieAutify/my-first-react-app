@@ -29,6 +29,7 @@ interface Translations {
     clockOutLabel: string;
   };
   moods: Record<MoodLevel, string>;
+  efforts: Record<MoodLevel, string>;
 }
 
 export const translations: Record<Lang, Translations> = {
@@ -44,7 +45,7 @@ export const translations: Record<Lang, Translations> = {
     },
     clockOut: {
       title: '退勤打刻',
-      moodQuestion: '今の調子は？',
+      moodQuestion: '今日の仕事はどうだった？',
       messageLabel: '今日を振り返って一言',
       messagePlaceholder: '今日もお疲れ様でした！',
       button: '退勤打刻する',
@@ -59,6 +60,7 @@ export const translations: Record<Lang, Translations> = {
       clockOutLabel: '退勤',
     },
     moods: { 5: '絶好調', 4: '好調', 3: '普通', 2: '不調', 1: '絶不調' },
+    efforts: { 5: '超頑張った', 4: '頑張った', 3: 'まあまあ', 2: 'もうちょっと', 1: 'あんまり' },
   },
   en: {
     appName: 'Attendance',
@@ -72,7 +74,7 @@ export const translations: Record<Lang, Translations> = {
     },
     clockOut: {
       title: 'Clock Out',
-      moodQuestion: 'How are you feeling now?',
+      moodQuestion: 'How was work today?',
       messageLabel: 'A word to wrap up your day',
       messagePlaceholder: 'Great work today!',
       button: 'Clock Out',
@@ -87,5 +89,6 @@ export const translations: Record<Lang, Translations> = {
       clockOutLabel: 'Out',
     },
     moods: { 5: 'Amazing', 4: 'Good', 3: 'Okay', 2: 'Not Great', 1: 'Rough' },
+    efforts: { 5: 'Crushed It', 4: 'Worked Hard', 3: 'Did Okay', 2: 'Could Do More', 1: 'Took It Easy' },
   },
 };

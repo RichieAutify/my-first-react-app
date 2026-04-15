@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import MoodSelector from '@/components/MoodSelector';
-import { AttendanceRecord, MoodLevel, MOOD_OPTIONS } from '@/types/attendance';
+import { AttendanceRecord, MoodLevel, MOOD_OPTIONS, EFFORT_OPTIONS } from '@/types/attendance';
 import { Lang, translations } from '@/i18n/translations';
 
 const STORAGE_KEY = 'attendance_records';
@@ -30,8 +30,8 @@ function formatDate(dateStr: string, lang: Lang): string {
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-function getMoodEmoji(level: MoodLevel): string {
-  return MOOD_OPTIONS.find((o) => o.level === level)!.emoji;
+function getEmoji(level: MoodLevel, options: typeof MOOD_OPTIONS): string {
+  return options.find((o) => o.level === level)!.emoji;
 }
 
 export default function Home() {
@@ -147,7 +147,8 @@ export default function Home() {
               <MoodSelector
                 selected={clockInMood}
                 onChange={setClockInMood}
-                moodLabels={t.moods}
+                options={MOOD_OPTIONS}
+                labels={t.moods}
               />
             </div>
             <div>
@@ -174,7 +175,7 @@ export default function Home() {
         {hasClockedIn && !hasClockedOut && todayRecord && (
           <>
             <div className="bg-indigo-600 text-white rounded-2xl p-4 flex items-center gap-4">
-              <span className="text-4xl">{getMoodEmoji(todayRecord.clockIn.mood)}</span>
+              <span className="text-4xl">{getEmoji(todayRecord.clockIn.mood, MOOD_OPTIONS)}</span>
               <div>
                 <p className="text-xs opacity-75 font-medium">{t.status.clockedIn}</p>
                 <p className="text-lg font-bold">{formatTime(todayRecord.clockIn.time)}</p>
@@ -193,7 +194,8 @@ export default function Home() {
                 <MoodSelector
                   selected={clockOutMood}
                   onChange={setClockOutMood}
-                  moodLabels={t.moods}
+                  options={EFFORT_OPTIONS}
+                  labels={t.efforts}
                 />
               </div>
               <div>
@@ -227,7 +229,7 @@ export default function Home() {
                   🌅 {t.status.clockInLabel}
                 </p>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">{getMoodEmoji(todayRecord.clockIn.mood)}</span>
+                  <span className="text-2xl">{getEmoji(todayRecord.clockIn.mood, MOOD_OPTIONS)}</span>
                   <div>
                     <p className="font-bold text-gray-800">{formatTime(todayRecord.clockIn.time)}</p>
                     <p className="text-xs text-gray-500">{t.moods[todayRecord.clockIn.mood]}</p>
@@ -240,12 +242,12 @@ export default function Home() {
                   🌙 {t.status.clockOutLabel}
                 </p>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-2xl">{getMoodEmoji(todayRecord.clockOut.mood)}</span>
+                  <span className="text-2xl">{getEmoji(todayRecord.clockOut.mood, EFFORT_OPTIONS)}</span>
                   <div>
                     <p className="font-bold text-gray-800">
                       {formatTime(todayRecord.clockOut.time)}
                     </p>
-                    <p className="text-xs text-gray-500">{t.moods[todayRecord.clockOut.mood]}</p>
+                    <p className="text-xs text-gray-500">{t.efforts[todayRecord.clockOut.mood]}</p>
                   </div>
                 </div>
                 <p className="text-xs text-gray-600">
@@ -280,7 +282,7 @@ export default function Home() {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-start gap-2">
-                    <span className="text-xl">{getMoodEmoji(record.clockIn.mood)}</span>
+                    <span className="text-xl">{getEmoji(record.clockIn.mood, MOOD_OPTIONS)}</span>
                     <div>
                       <p className="text-xs text-indigo-600 font-medium">
                         {t.status.clockInLabel} {formatTime(record.clockIn.time)}
@@ -292,7 +294,7 @@ export default function Home() {
                   </div>
                   {record.clockOut && (
                     <div className="flex items-start gap-2">
-                      <span className="text-xl">{getMoodEmoji(record.clockOut.mood)}</span>
+                      <span className="text-xl">{getEmoji(record.clockOut.mood, EFFORT_OPTIONS)}</span>
                       <div>
                         <p className="text-xs text-purple-600 font-medium">
                           {t.status.clockOutLabel} {formatTime(record.clockOut.time)}
