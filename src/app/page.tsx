@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import MoodSelector from '@/components/MoodSelector';
+import CalendarView from '@/components/CalendarView';
 import { AttendanceRecord, MoodLevel, MOOD_OPTIONS, EFFORT_OPTIONS } from '@/types/attendance';
 import { Lang, translations } from '@/i18n/translations';
 
@@ -257,6 +258,14 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* カレンダー */}
+        <div className="space-y-2">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
+            {t.calendar.title}
+          </h2>
+          <CalendarView records={records} t={t} lang={lang} />
+        </div>
 
         {/* 過去の記録 */}
         {pastRecords.length > 0 && (
