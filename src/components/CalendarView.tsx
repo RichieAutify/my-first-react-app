@@ -66,6 +66,28 @@ export default function CalendarView({ records, t, lang }: Props) {
 
   const selectedRecord = selectedDate ? recordMap.get(selectedDate) : null;
 
+  // 表示月の勤務時間を集計
+  const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
+  const monthRecords = records.filter((r) => r.date.startsWith(monthPrefix) && r.clockOut);
+  const totalMinutes = monthRecords.reduce((sum, r) => {
+    const diff = new Date(r.clockOut!.time).getTime() - new Date(r.clockIn.time).getTime();
+    return sum + Math.floor(diff / 60000);
+  }, 0);
+  const totalHours = Math.floor(totalMinutes / 60);
+  const totalMins = totalMinutes % 60;
+  const daysWorked = monthRecords.length;
+  const avgMinutes = daysWorked > 0 ? Math.floor(totalMinutes / daysWorked) : 0;
+  const avgHours = Math.floor(avgMinutes / 60);
+  const avgMins = avgMinutes % 60;
+
+  const totalLabel = lang === 'ja'
+    ? `${totalHours}時間${totalMins}分`
+    : `${totalHours}h ${totalMins}m`;
+  const avgLabel = lang === 'ja'
+    ? `${avgHours}時間${avgMins}分`
+    : `${avgHours}h ${avgMins}m`;
+  const daysLabel = lang === 'ja' ? `${daysWorked}日` : `${daysWorked} days`;
+
   return (
     <>
       <div className="bg-white rounded-2xl shadow-sm p-4">
@@ -99,6 +121,32 @@ export default function CalendarView({ records, t, lang }: Props) {
             </div>
           ))}
         </div>
+
+        {/* 月次集計 */}
+        {daysWorked > 0 && (
+          <div className="mb-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-3">
+            <div className="grid grid-cols-3 divide-x divide-indigo-100">
+              <div className="text-center px-2">
+                <p className="text-[10px] text-indigo-400 font-semibold mb-0.5">
+                  {lang === 'ja' ? '総勤務時間' : 'Total'}
+                </p>
+                <p className="text-sm font-bold text-indigo-700">{totalLabel}</p>
+              </div>
+              <div className="text-center px-2">
+                <p className="text-[10px] text-purple-400 font-semibold mb-0.5">
+                  {lang === 'ja' ? '出勤日数' : 'Days'}
+                </p>
+                <p className="text-sm font-bold text-purple-700">{daysLabel}</p>
+              </div>
+              <div className="text-center px-2">
+                <p className="text-[10px] text-indigo-400 font-semibold mb-0.5">
+                  {lang === 'ja' ? '1日平均' : 'Avg/Day'}
+                </p>
+                <p className="text-sm font-bold text-indigo-700">{avgLabel}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* カレンダーグリッド */}
         <div className="grid grid-cols-7 gap-0.5">
