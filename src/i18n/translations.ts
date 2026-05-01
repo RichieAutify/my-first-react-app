@@ -27,6 +27,9 @@ export interface Translations {
     missingClockOut: string;
     clockInLabel: string;
     clockOutLabel: string;
+    retroClockOut: string;
+    retroClockOutTime: string;
+    retroClockOutSave: string;
   };
   moods: Record<MoodLevel, string>;
   efforts: Record<MoodLevel, string>;
@@ -62,6 +65,9 @@ export const translations: Record<Lang, Translations> = {
       missingClockOut: '退勤未記録',
       clockInLabel: '出勤',
       clockOutLabel: '退勤',
+      retroClockOut: '後から退勤を入力',
+      retroClockOutTime: '退勤時刻',
+      retroClockOutSave: '保存する',
     },
     moods: { 5: '絶好調', 4: '好調', 3: '普通', 2: '不調', 1: '絶不調' },
     efforts: { 5: '超頑張った', 4: '頑張った', 3: 'まあまあ', 2: 'もうちょっと', 1: 'あんまり' },
@@ -95,6 +101,9 @@ export const translations: Record<Lang, Translations> = {
       missingClockOut: 'Clock-out Missing',
       clockInLabel: 'In',
       clockOutLabel: 'Out',
+      retroClockOut: 'Add Missed Clock-out',
+      retroClockOutTime: 'Clock-out Time',
+      retroClockOutSave: 'Save',
     },
     moods: { 5: 'Amazing', 4: 'Good', 3: 'Okay', 2: 'Not Great', 1: 'Rough' },
     efforts: { 5: 'Crushed It', 4: 'Worked Hard', 3: 'Did Okay', 2: 'Could Do More', 1: 'Took It Easy' },
