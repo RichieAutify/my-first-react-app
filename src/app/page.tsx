@@ -74,6 +74,10 @@ export default function Home() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   }
 
+  function handleUpdateRecord(updated: AttendanceRecord) {
+    saveRecords(records.map((r) => (r.id === updated.id ? updated : r)));
+  }
+
   function handleClockIn() {
     if (!clockInMood || !clockInMessage.trim()) return;
     const record: AttendanceRecord = {
@@ -264,7 +268,7 @@ export default function Home() {
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1">
             {t.calendar.title}
           </h2>
-          <CalendarView records={records} t={t} lang={lang} />
+          <CalendarView records={records} t={t} lang={lang} onUpdateRecord={handleUpdateRecord} />
         </div>
 
         {/* 過去の記録 */}
