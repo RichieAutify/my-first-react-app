@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AttendanceRecord, MOOD_OPTIONS, EFFORT_OPTIONS, MoodLevel } from '@/types/attendance';
 import { Lang, Translations } from '@/i18n/translations';
 import MoodSelector from '@/components/MoodSelector';
+import HolidayJP from '@holiday-jp/holiday_jp';
 
 interface Props {
   records: AttendanceRecord[];
@@ -94,6 +95,15 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
   ];
 
   const selectedRecord = selectedDate ? recordMap.get(selectedDate) : null;
+
+  // 表示月の祝日マップ: dateStr -> holiday name
+  const holidayMap = new Map<string, string>();
+  const monthStart = new Date(viewYear, viewMonth, 1);
+  const monthEnd = new Date(viewYear, viewMonth + 1, 0);
+  HolidayJP.between(monthStart, monthEnd).forEach((h) => {
+    const key = toDateStr(h.date.getFullYear(), h.date.getMonth(), h.date.getDate());
+    holidayMap.set(key, h.name);
+  });
 
   // 表示月の勤務時間を集計
   const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
@@ -186,6 +196,8 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
             const record = recordMap.get(dateStr);
             const isToday = dateStr === todayStr;
             const dayOfWeek = (firstDayOfWeek + day - 1) % 7;
+            const holidayName = holidayMap.get(dateStr);
+            const isHoliday = !!holidayName;
 
             return (
               <div
@@ -204,7 +216,7 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
                   className={`text-xs font-semibold w-5 h-5 flex items-center justify-center rounded-full mb-0.5 ${
                     isToday
                       ? 'bg-indigo-600 text-white'
-                      : dayOfWeek === 0
+                      : dayOfWeek === 0 || isHoliday
                       ? 'text-red-400'
                       : dayOfWeek === 6
                       ? 'text-blue-400'
@@ -213,6 +225,12 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
                 >
                   {day}
                 </span>
+                {/* 祝日名 */}
+                {isHoliday && (
+                  <span className="text-[9px] leading-tight text-red-400 font-medium break-all">
+                    {holidayName}
+                  </span>
+                )}
 
                 {/* 打刻情報 */}
                 {record && (
@@ -255,7 +273,12 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
           >
             {/* ヘッダー */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-gray-800">{formatDate(selectedDate, lang)}</h3>
+              <div>
+                <h3 className="font-bold text-gray-800">{formatDate(selectedDate, lang)}</h3>
+                {holidayMap.get(selectedDate) && (
+                  <p className="text-xs text-red-400 font-medium mt-0.5">{holidayMap.get(selectedDate)}</p>
+                )}
+              </div>
               <button
                 onClick={closeModal}
                 className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg transition-colors"
