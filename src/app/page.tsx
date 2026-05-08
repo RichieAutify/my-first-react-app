@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import MoodSelector from '@/components/MoodSelector';
 import CalendarView from '@/components/CalendarView';
+import RecordDetailModal from '@/components/RecordDetailModal';
 import { AttendanceRecord, MoodLevel, MOOD_OPTIONS, EFFORT_OPTIONS } from '@/types/attendance';
 import { Lang, translations } from '@/i18n/translations';
 
@@ -44,6 +45,7 @@ export default function Home() {
   const [clockOutMessage, setClockOutMessage] = useState('');
   const [now, setNow] = useState(new Date());
   const [mounted, setMounted] = useState(false);
+  const [selectedPastRecord, setSelectedPastRecord] = useState<AttendanceRecord | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -278,7 +280,11 @@ export default function Home() {
               {t.status.pastRecords}
             </h2>
             {pastRecords.slice(0, 10).map((record) => (
-              <div key={record.id} className="bg-white rounded-2xl shadow-sm p-4">
+              <div
+                key={record.id}
+                onClick={() => setSelectedPastRecord(record)}
+                className="bg-white rounded-2xl shadow-sm p-4 cursor-pointer hover:bg-indigo-50 transition-colors"
+              >
                 <div className="flex items-center justify-between mb-3">
                   <p className="font-semibold text-gray-700 text-sm">
                     {formatDate(record.date, lang)}
@@ -322,6 +328,21 @@ export default function Home() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Past RECORDSの詳細モーダル */}
+        {selectedPastRecord && (
+          <RecordDetailModal
+            record={selectedPastRecord}
+            date={selectedPastRecord.date}
+            t={t}
+            lang={lang}
+            onClose={() => setSelectedPastRecord(null)}
+            onUpdateRecord={(updated) => {
+              handleUpdateRecord(updated);
+              setSelectedPastRecord(null);
+            }}
+          />
         )}
       </main>
     </div>
