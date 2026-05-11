@@ -31,6 +31,7 @@ export interface ClockEntry {
 export interface AttendanceRecord {
   id: string;
   date: string; // YYYY-MM-DD
-  clockIn: ClockEntry;
+  isPaidLeave?: boolean;
+  clockIn?: ClockEntry;
   clockOut?: ClockEntry;
 }
