@@ -77,9 +77,11 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
 
   // 表示月の勤務時間を集計
   const monthPrefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
-  const monthRecords = records.filter((r) => r.date.startsWith(monthPrefix) && r.clockOut);
+  const allMonthRecords = records.filter((r) => r.date.startsWith(monthPrefix));
+  const monthRecords = allMonthRecords.filter((r) => r.clockOut && r.clockIn);
+  const paidLeaveCount = allMonthRecords.filter((r) => r.isPaidLeave).length;
   const totalMinutes = monthRecords.reduce((sum, r) => {
-    const diff = new Date(r.clockOut!.time).getTime() - new Date(r.clockIn.time).getTime();
+    const diff = new Date(r.clockOut!.time).getTime() - new Date(r.clockIn!.time).getTime();
     return sum + Math.floor(diff / 60000);
   }, 0);
   const totalHours = Math.floor(totalMinutes / 60);
@@ -132,28 +134,37 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
         </div>
 
         {/* 月次集計 */}
-        {daysWorked > 0 && (
+        {(daysWorked > 0 || paidLeaveCount > 0) && (
           <div className="mb-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-3">
-            <div className="grid grid-cols-3 divide-x divide-indigo-100">
-              <div className="text-center px-2">
-                <p className="text-[10px] text-indigo-400 font-semibold mb-0.5">
-                  {lang === 'ja' ? '総勤務時間' : 'Total'}
-                </p>
-                <p className="text-sm font-bold text-indigo-700">{totalLabel}</p>
+            {daysWorked > 0 && (
+              <div className="grid grid-cols-3 divide-x divide-indigo-100">
+                <div className="text-center px-2">
+                  <p className="text-[10px] text-indigo-400 font-semibold mb-0.5">
+                    {lang === 'ja' ? '総勤務時間' : 'Total'}
+                  </p>
+                  <p className="text-sm font-bold text-indigo-700">{totalLabel}</p>
+                </div>
+                <div className="text-center px-2">
+                  <p className="text-[10px] text-purple-400 font-semibold mb-0.5">
+                    {lang === 'ja' ? '出勤日数' : 'Days'}
+                  </p>
+                  <p className="text-sm font-bold text-purple-700">{daysLabel}</p>
+                </div>
+                <div className="text-center px-2">
+                  <p className="text-[10px] text-indigo-400 font-semibold mb-0.5">
+                    {lang === 'ja' ? '1日平均' : 'Avg/Day'}
+                  </p>
+                  <p className="text-sm font-bold text-indigo-700">{avgLabel}</p>
+                </div>
               </div>
-              <div className="text-center px-2">
-                <p className="text-[10px] text-purple-400 font-semibold mb-0.5">
-                  {lang === 'ja' ? '出勤日数' : 'Days'}
+            )}
+            {paidLeaveCount > 0 && (
+              <div className={`text-center ${daysWorked > 0 ? 'mt-2 pt-2 border-t border-indigo-100' : ''}`}>
+                <p className="text-[10px] text-green-500 font-semibold">
+                  🏖️ {lang === 'ja' ? `有給取得 ${paidLeaveCount}日` : `Paid Leave: ${paidLeaveCount} day(s)`}
                 </p>
-                <p className="text-sm font-bold text-purple-700">{daysLabel}</p>
               </div>
-              <div className="text-center px-2">
-                <p className="text-[10px] text-indigo-400 font-semibold mb-0.5">
-                  {lang === 'ja' ? '1日平均' : 'Avg/Day'}
-                </p>
-                <p className="text-sm font-bold text-indigo-700">{avgLabel}</p>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -205,23 +216,36 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
                 {/* 打刻情報 */}
                 {record && (
                   <div className="space-y-0.5">
-                    <div className="flex items-center gap-0.5">
-                      <span className="text-xs leading-none">
-                        {getEmoji(record.clockIn.mood, MOOD_OPTIONS)}
-                      </span>
-                      <span className="text-[10px] text-indigo-500 leading-none font-medium">
-                        {formatTime(record.clockIn.time)}
-                      </span>
-                    </div>
-                    {record.clockOut && (
+                    {record.isPaidLeave ? (
                       <div className="flex items-center gap-0.5">
-                        <span className="text-xs leading-none">
-                          {getEmoji(record.clockOut.mood, EFFORT_OPTIONS)}
-                        </span>
-                        <span className="text-[10px] text-purple-500 leading-none font-medium">
-                          {formatTime(record.clockOut.time)}
+                        <span className="text-xs leading-none">🏖️</span>
+                        <span className="text-[10px] text-green-500 leading-none font-medium">
+                          {lang === 'ja' ? '有給' : 'PL'}
                         </span>
                       </div>
+                    ) : (
+                      <>
+                        {record.clockIn && (
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-xs leading-none">
+                              {getEmoji(record.clockIn.mood, MOOD_OPTIONS)}
+                            </span>
+                            <span className="text-[10px] text-indigo-500 leading-none font-medium">
+                              {formatTime(record.clockIn.time)}
+                            </span>
+                          </div>
+                        )}
+                        {record.clockOut && (
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-xs leading-none">
+                              {getEmoji(record.clockOut.mood, EFFORT_OPTIONS)}
+                            </span>
+                            <span className="text-[10px] text-purple-500 leading-none font-medium">
+                              {formatTime(record.clockOut.time)}
+                            </span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}

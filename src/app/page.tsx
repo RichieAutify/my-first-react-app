@@ -61,7 +61,7 @@ export default function Home() {
   const t = translations[lang];
   const today = getToday();
   const todayRecord = records.find((r) => r.date === today);
-  const hasClockedIn = !!todayRecord?.clockIn;
+  const hasClockedIn = !!(todayRecord?.clockIn || todayRecord?.isPaidLeave);
   const hasClockedOut = !!todayRecord?.clockOut;
   const pastRecords = records.filter((r) => r.date !== today);
 
@@ -78,6 +78,15 @@ export default function Home() {
 
   function handleUpdateRecord(updated: AttendanceRecord) {
     saveRecords(records.map((r) => (r.id === updated.id ? updated : r)));
+  }
+
+  function handlePaidLeave() {
+    const record: AttendanceRecord = {
+      id: crypto.randomUUID(),
+      date: today,
+      isPaidLeave: true,
+    };
+    saveRecords([record, ...records]);
   }
 
   function handleClockIn() {
@@ -175,11 +184,35 @@ export default function Home() {
             >
               {t.clockIn.button}
             </button>
+            <div className="flex items-center gap-3">
+              <hr className="flex-1 border-gray-200" />
+              <span className="text-xs text-gray-400">{t.status.paidLeaveOr}</span>
+              <hr className="flex-1 border-gray-200" />
+            </div>
+            <button
+              onClick={handlePaidLeave}
+              className="w-full bg-green-500 text-white py-3 rounded-xl font-semibold hover:bg-green-600 transition-colors"
+            >
+              🏖️ {t.status.paidLeaveButton}
+            </button>
+          </div>
+        )}
+
+        {/* 有給取得済み */}
+        {todayRecord?.isPaidLeave && (
+          <div className="bg-green-500 text-white rounded-2xl p-4 flex items-center gap-4">
+            <span className="text-4xl">🏖️</span>
+            <div>
+              <p className="text-xs opacity-75 font-medium">{t.status.paidLeave}</p>
+              <p className="text-lg font-bold">
+                {lang === 'ja' ? '本日は有給取得です' : 'On paid leave today'}
+              </p>
+            </div>
           </div>
         )}
 
         {/* 出勤後・退勤前 */}
-        {hasClockedIn && !hasClockedOut && todayRecord && (
+        {hasClockedIn && !hasClockedOut && todayRecord && !todayRecord.isPaidLeave && todayRecord.clockIn && (
           <>
             <div className="bg-indigo-600 text-white rounded-2xl p-4 flex items-center gap-4">
               <span className="text-4xl">{getEmoji(todayRecord.clockIn.mood, MOOD_OPTIONS)}</span>
@@ -227,7 +260,7 @@ export default function Home() {
         )}
 
         {/* 退勤完了: 今日のサマリー */}
-        {hasClockedIn && hasClockedOut && todayRecord?.clockOut && (
+        {hasClockedIn && hasClockedOut && todayRecord?.clockOut && todayRecord.clockIn && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="text-base font-semibold text-gray-700 mb-4">{t.status.todayRecord}</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -289,7 +322,11 @@ export default function Home() {
                   <p className="font-semibold text-gray-700 text-sm">
                     {formatDate(record.date, lang)}
                   </p>
-                  {record.clockOut ? (
+                  {record.isPaidLeave ? (
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                      🏖️ {t.status.paidLeave}
+                    </span>
+                  ) : record.clockOut ? (
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
                       {t.status.completed}
                     </span>
@@ -299,7 +336,14 @@ export default function Home() {
                     </span>
                   )}
                 </div>
+                {record.isPaidLeave ? (
+                  <div className="flex items-center gap-2 text-green-600">
+                    <span className="text-2xl">🏖️</span>
+                    <p className="text-sm font-medium">{t.status.paidLeave}</p>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-2 gap-3">
+                  {record.clockIn && (
                   <div className="flex items-start gap-2">
                     <span className="text-xl">{getEmoji(record.clockIn.mood, MOOD_OPTIONS)}</span>
                     <div>
@@ -311,6 +355,7 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
+                  )}
                   {record.clockOut && (
                     <div className="flex items-start gap-2">
                       <span className="text-xl">{getEmoji(record.clockOut.mood, EFFORT_OPTIONS)}</span>
@@ -325,6 +370,7 @@ export default function Home() {
                     </div>
                   )}
                 </div>
+                )}
               </div>
             ))}
           </div>
