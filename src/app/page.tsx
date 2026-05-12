@@ -18,6 +18,15 @@ function getToday(): string {
   return `${y}-${m}-${d}`;
 }
 
+function getTomorrow(): string {
+  const now = new Date();
+  now.setDate(now.getDate() + 1);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function formatTime(isoString: string): string {
   return new Date(isoString).toLocaleTimeString('ja-JP', {
     hour: '2-digit',
@@ -46,6 +55,7 @@ export default function Home() {
   const [now, setNow] = useState(new Date());
   const [mounted, setMounted] = useState(false);
   const [selectedPastRecord, setSelectedPastRecord] = useState<AttendanceRecord | null>(null);
+  const [futurePaidLeaveDate, setFuturePaidLeaveDate] = useState<string>(getTomorrow());
 
   useEffect(() => {
     setMounted(true);
@@ -63,7 +73,10 @@ export default function Home() {
   const todayRecord = records.find((r) => r.date === today);
   const hasClockedIn = !!(todayRecord?.clockIn || todayRecord?.isPaidLeave);
   const hasClockedOut = !!todayRecord?.clockOut;
-  const pastRecords = records.filter((r) => r.date !== today);
+  const pastRecords = records
+    .filter((r) => r.date !== today)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const futurePaidLeaveHasRecord = !!records.find((r) => r.date === futurePaidLeaveDate);
 
   function toggleLang() {
     const next: Lang = lang === 'ja' ? 'en' : 'ja';
@@ -87,6 +100,17 @@ export default function Home() {
       isPaidLeave: true,
     };
     saveRecords([record, ...records]);
+  }
+
+  function handleFuturePaidLeave() {
+    if (futurePaidLeaveHasRecord) return;
+    const record: AttendanceRecord = {
+      id: crypto.randomUUID(),
+      date: futurePaidLeaveDate,
+      isPaidLeave: true,
+    };
+    saveRecords([record, ...records]);
+    setFuturePaidLeaveDate(getTomorrow());
   }
 
   function handleClockIn() {
@@ -304,6 +328,33 @@ export default function Home() {
             {t.calendar.title}
           </h2>
           <CalendarView records={records} t={t} lang={lang} onUpdateRecord={handleUpdateRecord} />
+        </div>
+
+        {/* 有給の事前登録 */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 space-y-4">
+          <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <span>📅</span> {t.status.futurePaidLeave}
+          </h2>
+          <div>
+            <p className="text-sm font-medium text-gray-500 mb-2">{t.status.futurePaidLeaveDate}</p>
+            <input
+              type="date"
+              min={getTomorrow()}
+              value={futurePaidLeaveDate}
+              onChange={(e) => setFuturePaidLeaveDate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"
+            />
+          </div>
+          {futurePaidLeaveHasRecord && (
+            <p className="text-sm text-red-500">{t.status.futurePaidLeaveAlreadyExists}</p>
+          )}
+          <button
+            onClick={handleFuturePaidLeave}
+            disabled={futurePaidLeaveHasRecord}
+            className="w-full bg-green-500 text-white py-3 rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-green-600 transition-colors"
+          >
+            🏖️ {t.status.futurePaidLeaveButton}
+          </button>
         </div>
 
         {/* 過去の記録 */}
