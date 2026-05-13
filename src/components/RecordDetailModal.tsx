@@ -6,7 +6,7 @@ import { Lang, Translations } from '@/i18n/translations';
 import MoodSelector from '@/components/MoodSelector';
 
 interface Props {
-  record: AttendanceRecord;
+  record?: AttendanceRecord;
   date: string;
   holidayName?: string;
   t: Translations;
@@ -42,18 +42,27 @@ export default function RecordDetailModal({
   onClose,
   onUpdateRecord,
 }: Props) {
+  // retro clock-out (既存レコードに退勤を追記)
   const [retroTime, setRetroTime] = useState('');
   const [retroMood, setRetroMood] = useState<MoodLevel | null>(null);
   const [retroMessage, setRetroMessage] = useState('');
+
+  // 新規レコード作成用 (出勤)
+  const [newClockInTime, setNewClockInTime] = useState('');
+  const [newClockInMood, setNewClockInMood] = useState<MoodLevel | null>(null);
+  const [newClockInMessage, setNewClockInMessage] = useState('');
 
   useEffect(() => {
     setRetroTime('');
     setRetroMood(null);
     setRetroMessage('');
+    setNewClockInTime('');
+    setNewClockInMood(null);
+    setNewClockInMessage('');
   }, [date]);
 
   function handleRetroClockOut() {
-    if (!retroTime || !retroMood || !retroMessage.trim()) return;
+    if (!record || !retroTime || !retroMood || !retroMessage.trim()) return;
     const updated: AttendanceRecord = {
       ...record,
       clockOut: {
@@ -65,6 +74,46 @@ export default function RecordDetailModal({
     onUpdateRecord(updated);
     onClose();
   }
+
+  function handleNewRecord() {
+    const clockInFilled = newClockInTime && newClockInMood && newClockInMessage.trim();
+    const clockOutFilled = retroTime && retroMood && retroMessage.trim();
+    if (!clockInFilled && !clockOutFilled) return;
+
+    const newRecord: AttendanceRecord = {
+      id: crypto.randomUUID(),
+      date,
+      ...(clockInFilled
+        ? {
+            clockIn: {
+              time: new Date(`${date}T${newClockInTime}:00`).toISOString(),
+              mood: newClockInMood!,
+              message: newClockInMessage.trim(),
+            },
+          }
+        : {}),
+      ...(clockOutFilled
+        ? {
+            clockOut: {
+              time: new Date(`${date}T${retroTime}:00`).toISOString(),
+              mood: retroMood!,
+              message: retroMessage.trim(),
+            },
+          }
+        : {}),
+    };
+    onUpdateRecord(newRecord);
+    onClose();
+  }
+
+  function handlePaidLeave() {
+    onUpdateRecord({ id: crypto.randomUUID(), date, isPaidLeave: true });
+    onClose();
+  }
+
+  const canSaveNew =
+    !!(newClockInTime && newClockInMood && newClockInMessage.trim()) ||
+    !!(retroTime && retroMood && retroMessage.trim());
 
   return (
     <div
@@ -91,85 +140,179 @@ export default function RecordDetailModal({
         </div>
 
         <div className="space-y-3">
-          {record.isPaidLeave ? (
-            <div className="bg-green-50 rounded-xl p-6 flex flex-col items-center gap-2">
-              <span className="text-5xl">🏖️</span>
-              <p className="font-bold text-green-700 text-lg">{t.status.paidLeave}</p>
-            </div>
-          ) : (
-            <>
-              {record.clockIn && (
-                <div className="bg-indigo-50 rounded-xl p-4">
-                  <p className="text-xs text-indigo-600 font-semibold mb-2">
-                    🌅 {t.status.clockInLabel}
-                  </p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{getEmoji(record.clockIn.mood, MOOD_OPTIONS)}</span>
-                    <div>
-                      <p className="font-bold text-gray-800">{formatTime(record.clockIn.time)}</p>
-                      <p className="text-xs text-gray-500">{t.moods[record.clockIn.mood]}</p>
+          {/* ── 既存レコードがある場合 ── */}
+          {record ? (
+            record.isPaidLeave ? (
+              <div className="bg-green-50 rounded-xl p-6 flex flex-col items-center gap-2">
+                <span className="text-5xl">🏖️</span>
+                <p className="font-bold text-green-700 text-lg">{t.status.paidLeave}</p>
+              </div>
+            ) : (
+              <>
+                {record.clockIn && (
+                  <div className="bg-indigo-50 rounded-xl p-4">
+                    <p className="text-xs text-indigo-600 font-semibold mb-2">
+                      🌅 {t.status.clockInLabel}
+                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">{getEmoji(record.clockIn.mood, MOOD_OPTIONS)}</span>
+                      <div>
+                        <p className="font-bold text-gray-800">{formatTime(record.clockIn.time)}</p>
+                        <p className="text-xs text-gray-500">{t.moods[record.clockIn.mood]}</p>
+                      </div>
                     </div>
+                    <p className="text-sm text-gray-600">&ldquo;{record.clockIn.message}&rdquo;</p>
                   </div>
-                  <p className="text-sm text-gray-600">&ldquo;{record.clockIn.message}&rdquo;</p>
-                </div>
-              )}
+                )}
 
-              {record.clockOut ? (
-                <div className="bg-purple-50 rounded-xl p-4">
-                  <p className="text-xs text-purple-600 font-semibold mb-2">
-                    🌙 {t.status.clockOutLabel}
-                  </p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-2xl">{getEmoji(record.clockOut.mood, EFFORT_OPTIONS)}</span>
-                    <div>
-                      <p className="font-bold text-gray-800">{formatTime(record.clockOut.time)}</p>
-                      <p className="text-xs text-gray-500">{t.efforts[record.clockOut.mood]}</p>
+                {record.clockOut ? (
+                  <div className="bg-purple-50 rounded-xl p-4">
+                    <p className="text-xs text-purple-600 font-semibold mb-2">
+                      🌙 {t.status.clockOutLabel}
+                    </p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-2xl">{getEmoji(record.clockOut.mood, EFFORT_OPTIONS)}</span>
+                      <div>
+                        <p className="font-bold text-gray-800">{formatTime(record.clockOut.time)}</p>
+                        <p className="text-xs text-gray-500">{t.efforts[record.clockOut.mood]}</p>
+                      </div>
                     </div>
+                    <p className="text-sm text-gray-600">&ldquo;{record.clockOut.message}&rdquo;</p>
                   </div>
-                  <p className="text-sm text-gray-600">&ldquo;{record.clockOut.message}&rdquo;</p>
+                ) : (
+                  <div className="bg-purple-50 rounded-xl p-4 space-y-3">
+                    <p className="text-xs text-purple-600 font-semibold">
+                      🌙 {t.status.retroClockOut}
+                    </p>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">{t.status.retroClockOutTime}</p>
+                      <input
+                        type="time"
+                        value={retroTime}
+                        onChange={(e) => setRetroTime(e.target.value)}
+                        className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-2">{t.clockOut.moodQuestion}</p>
+                      <MoodSelector
+                        selected={retroMood}
+                        onChange={setRetroMood}
+                        options={EFFORT_OPTIONS}
+                        labels={t.efforts}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">{t.clockOut.messageLabel}</p>
+                      <textarea
+                        value={retroMessage}
+                        onChange={(e) => setRetroMessage(e.target.value)}
+                        placeholder={t.clockOut.messagePlaceholder}
+                        rows={2}
+                        className="w-full border border-purple-200 rounded-xl p-2 text-sm resize-none focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                      />
+                    </div>
+                    <button
+                      onClick={handleRetroClockOut}
+                      disabled={!retroTime || !retroMood || !retroMessage.trim()}
+                      className="w-full bg-purple-600 text-white py-2 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-purple-700 transition-colors"
+                    >
+                      {t.status.retroClockOutSave}
+                    </button>
+                  </div>
+                )}
+              </>
+            )
+          ) : (
+            /* ── レコードがない場合: 出勤・退勤を後から入力 ── */
+            <>
+              {/* 出勤 */}
+              <div className="bg-indigo-50 rounded-xl p-4 space-y-3">
+                <p className="text-xs text-indigo-600 font-semibold">🌅 {t.status.retroClockIn}</p>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">{t.status.retroClockInTime}</p>
+                  <input
+                    type="time"
+                    value={newClockInTime}
+                    onChange={(e) => setNewClockInTime(e.target.value)}
+                    className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  />
                 </div>
-              ) : (
-                <div className="bg-purple-50 rounded-xl p-4 space-y-3">
-                  <p className="text-xs text-purple-600 font-semibold">
-                    🌙 {t.status.retroClockOut}
-                  </p>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">{t.status.retroClockOutTime}</p>
-                    <input
-                      type="time"
-                      value={retroTime}
-                      onChange={(e) => setRetroTime(e.target.value)}
-                      className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-2">{t.clockOut.moodQuestion}</p>
-                    <MoodSelector
-                      selected={retroMood}
-                      onChange={setRetroMood}
-                      options={EFFORT_OPTIONS}
-                      labels={t.efforts}
-                    />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">{t.clockOut.messageLabel}</p>
-                    <textarea
-                      value={retroMessage}
-                      onChange={(e) => setRetroMessage(e.target.value)}
-                      placeholder={t.clockOut.messagePlaceholder}
-                      rows={2}
-                      className="w-full border border-purple-200 rounded-xl p-2 text-sm resize-none focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                    />
-                  </div>
-                  <button
-                    onClick={handleRetroClockOut}
-                    disabled={!retroTime || !retroMood || !retroMessage.trim()}
-                    className="w-full bg-purple-600 text-white py-2 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-purple-700 transition-colors"
-                  >
-                    {t.status.retroClockOutSave}
-                  </button>
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">{t.clockIn.moodQuestion}</p>
+                  <MoodSelector
+                    selected={newClockInMood}
+                    onChange={setNewClockInMood}
+                    options={MOOD_OPTIONS}
+                    labels={t.moods}
+                  />
                 </div>
-              )}
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">{t.clockIn.messageLabel}</p>
+                  <textarea
+                    value={newClockInMessage}
+                    onChange={(e) => setNewClockInMessage(e.target.value)}
+                    placeholder={t.clockIn.messagePlaceholder}
+                    rows={2}
+                    className="w-full border border-indigo-200 rounded-xl p-2 text-sm resize-none focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+              </div>
+
+              {/* 退勤 */}
+              <div className="bg-purple-50 rounded-xl p-4 space-y-3">
+                <p className="text-xs text-purple-600 font-semibold">🌙 {t.status.retroClockOut}</p>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">{t.status.retroClockOutTime}</p>
+                  <input
+                    type="time"
+                    value={retroTime}
+                    onChange={(e) => setRetroTime(e.target.value)}
+                    className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-2">{t.clockOut.moodQuestion}</p>
+                  <MoodSelector
+                    selected={retroMood}
+                    onChange={setRetroMood}
+                    options={EFFORT_OPTIONS}
+                    labels={t.efforts}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 mb-1">{t.clockOut.messageLabel}</p>
+                  <textarea
+                    value={retroMessage}
+                    onChange={(e) => setRetroMessage(e.target.value)}
+                    placeholder={t.clockOut.messagePlaceholder}
+                    rows={2}
+                    className="w-full border border-purple-200 rounded-xl p-2 text-sm resize-none focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  />
+                </div>
+              </div>
+
+              {/* 有給オプション */}
+              <div className="flex items-center gap-3">
+                <hr className="flex-1 border-gray-200" />
+                <span className="text-xs text-gray-400">{t.status.paidLeaveOr}</span>
+                <hr className="flex-1 border-gray-200" />
+              </div>
+              <button
+                onClick={handlePaidLeave}
+                className="w-full bg-green-500 text-white py-2 rounded-xl text-sm font-semibold hover:bg-green-600 transition-colors"
+              >
+                🏖️ {t.status.paidLeaveButton}
+              </button>
+
+              {/* 保存ボタン */}
+              <button
+                onClick={handleNewRecord}
+                disabled={!canSaveNew}
+                className="w-full bg-indigo-600 text-white py-2 rounded-xl text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
+              >
+                {t.status.retroClockOutSave}
+              </button>
             </>
           )}
         </div>

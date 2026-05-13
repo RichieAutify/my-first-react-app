@@ -27,6 +27,8 @@ export interface Translations {
     missingClockOut: string;
     clockInLabel: string;
     clockOutLabel: string;
+    retroClockIn: string;
+    retroClockInTime: string;
     retroClockOut: string;
     retroClockOutTime: string;
     retroClockOutSave: string;
@@ -72,6 +74,8 @@ export const translations: Record<Lang, Translations> = {
       missingClockOut: '退勤未記録',
       clockInLabel: '出勤',
       clockOutLabel: '退勤',
+      retroClockIn: '出勤を後から入力',
+      retroClockInTime: '出勤時刻',
       retroClockOut: '後から退勤を入力',
       retroClockOutTime: '退勤時刻',
       retroClockOutSave: '保存する',
@@ -115,6 +119,8 @@ export const translations: Record<Lang, Translations> = {
       missingClockOut: 'Clock-out Missing',
       clockInLabel: 'In',
       clockOutLabel: 'Out',
+      retroClockIn: 'Add Missed Clock-in',
+      retroClockInTime: 'Clock-in Time',
       retroClockOut: 'Add Missed Clock-out',
       retroClockOutTime: 'Clock-out Time',
       retroClockOutSave: 'Save',
