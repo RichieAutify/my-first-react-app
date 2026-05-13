@@ -180,17 +180,19 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
             const holidayName = holidayMap.get(dateStr);
             const isHoliday = !!holidayName;
 
+            const isWeekday = dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday;
+
             return (
               <div
                 key={dateStr}
-                onClick={() => record && setSelectedDate(dateStr)}
+                onClick={() => isWeekday && setSelectedDate(dateStr)}
                 className={`rounded-lg p-1 min-h-14 flex flex-col ${
                   isToday
                     ? 'bg-indigo-50 ring-2 ring-indigo-400'
                     : record
                     ? 'bg-gray-50'
                     : ''
-                } ${record ? 'cursor-pointer hover:bg-indigo-50 transition-colors' : ''}`}
+                } ${isWeekday ? 'cursor-pointer hover:bg-indigo-50 transition-colors' : ''}`}
               >
                 {/* 日付番号 */}
                 <span
@@ -256,9 +258,9 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
       </div>
 
       {/* 日付詳細モーダル */}
-      {selectedDate && selectedRecord && (
+      {selectedDate && (
         <RecordDetailModal
-          record={selectedRecord}
+          record={selectedRecord ?? undefined}
           date={selectedDate}
           holidayName={holidayMap.get(selectedDate)}
           t={t}

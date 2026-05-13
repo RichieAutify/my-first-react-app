@@ -90,7 +90,12 @@ export default function Home() {
   }
 
   function handleUpdateRecord(updated: AttendanceRecord) {
-    saveRecords(records.map((r) => (r.id === updated.id ? updated : r)));
+    const exists = records.some((r) => r.id === updated.id);
+    if (exists) {
+      saveRecords(records.map((r) => (r.id === updated.id ? updated : r)));
+    } else {
+      saveRecords([updated, ...records]);
+    }
   }
 
   function handlePaidLeave() {
