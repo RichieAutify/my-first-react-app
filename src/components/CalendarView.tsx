@@ -182,17 +182,24 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
 
             const isWeekday = dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday;
 
+            const performance = record?.performance;
+            const bgClass = performance === 'great'
+              ? isToday ? 'bg-emerald-100 ring-2 ring-indigo-400' : 'bg-emerald-50'
+              : performance === 'poor'
+              ? isToday ? 'bg-rose-100 ring-2 ring-indigo-400' : 'bg-rose-50'
+              : isToday ? 'bg-indigo-50 ring-2 ring-indigo-400'
+              : record ? 'bg-gray-50' : '';
+            const hoverClass = performance === 'great'
+              ? 'hover:bg-emerald-100'
+              : performance === 'poor'
+              ? 'hover:bg-rose-100'
+              : 'hover:bg-indigo-50';
+
             return (
               <div
                 key={dateStr}
                 onClick={() => isWeekday && setSelectedDate(dateStr)}
-                className={`rounded-lg p-1 min-h-14 flex flex-col ${
-                  isToday
-                    ? 'bg-indigo-50 ring-2 ring-indigo-400'
-                    : record
-                    ? 'bg-gray-50'
-                    : ''
-                } ${isWeekday ? 'cursor-pointer hover:bg-indigo-50 transition-colors' : ''}`}
+                className={`rounded-lg p-1 min-h-14 flex flex-col ${bgClass} ${isWeekday ? `cursor-pointer ${hoverClass} transition-colors` : ''}`}
               >
                 {/* 日付番号 */}
                 <span
@@ -244,6 +251,13 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
                             </span>
                             <span className="text-[10px] text-purple-500 leading-none font-medium">
                               {formatTime(record.clockOut.time)}
+                            </span>
+                          </div>
+                        )}
+                        {record.performance && (
+                          <div className="flex items-center gap-0.5 mt-0.5">
+                            <span className="text-xs leading-none">
+                              {record.performance === 'great' ? '✨' : '💧'}
                             </span>
                           </div>
                         )}
