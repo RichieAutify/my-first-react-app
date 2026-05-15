@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AttendanceRecord, MOOD_OPTIONS, EFFORT_OPTIONS, MoodLevel, DayPerformance } from '@/types/attendance';
+import { AttendanceRecord, MOOD_OPTIONS, EFFORT_OPTIONS, MoodLevel } from '@/types/attendance';
 import { Lang, Translations } from '@/i18n/translations';
 import MoodSelector from '@/components/MoodSelector';
 
@@ -60,14 +60,6 @@ export default function RecordDetailModal({
     setNewClockInMood(null);
     setNewClockInMessage('');
   }, [date]);
-
-  function handlePerformance(perf: DayPerformance) {
-    if (!record) return;
-    onUpdateRecord({
-      ...record,
-      performance: record.performance === perf ? undefined : perf,
-    });
-  }
 
   function handleRetroClockOut() {
     if (!record || !retroTime || !retroMood || !retroMessage.trim()) return;
@@ -187,33 +179,6 @@ export default function RecordDetailModal({
                         </div>
                       </div>
                       <p className="text-sm text-gray-600">&ldquo;{record.clockOut.message}&rdquo;</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <p className="text-xs text-gray-500 font-semibold mb-3">
-                        {t.status.performanceLabel}
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handlePerformance('great')}
-                          className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
-                            record.performance === 'great'
-                              ? 'bg-emerald-500 text-white'
-                              : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
-                          }`}
-                        >
-                          ✨ {t.status.performanceGreat}
-                        </button>
-                        <button
-                          onClick={() => handlePerformance('poor')}
-                          className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-colors ${
-                            record.performance === 'poor'
-                              ? 'bg-rose-500 text-white'
-                              : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
-                          }`}
-                        >
-                          💧 {t.status.performancePoor}
-                        </button>
-                      </div>
                     </div>
                   </>
                 ) : (

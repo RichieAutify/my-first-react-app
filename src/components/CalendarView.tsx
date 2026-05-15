@@ -17,6 +17,42 @@ function getEmoji(level: MoodLevel, options: typeof MOOD_OPTIONS): string {
   return options.find((o) => o.level === level)!.emoji;
 }
 
+// 出勤体調の背景色（緑系：好調 → 赤系：不調）
+function getMoodBgColor(level: MoodLevel): string {
+  switch (level) {
+    case 5: return '#bbf7d0'; // 絶好調 — green-200
+    case 4: return '#d1fae5'; // 好調   — emerald-100
+    case 3: return '#f3f4f6'; // 普通   — gray-100
+    case 2: return '#fed7aa'; // 不調   — orange-100
+    case 1: return '#fecaca'; // 絶不調 — red-200
+  }
+}
+
+// 退勤頑張り度の背景色（青紫系：頑張った → 橙赤系：あんまり）
+function getEffortBgColor(level: MoodLevel): string {
+  switch (level) {
+    case 5: return '#c7d2fe'; // 超頑張った — indigo-200
+    case 4: return '#bfdbfe'; // 頑張った   — blue-200
+    case 3: return '#e0f2fe'; // まあまあ   — sky-100
+    case 2: return '#fde68a'; // もうちょっと — amber-200
+    case 1: return '#fca5a5'; // あんまり   — red-300
+  }
+}
+
+function getCellBackground(
+  record: { isPaidLeave?: boolean; clockIn?: { mood: MoodLevel }; clockOut?: { mood: MoodLevel } } | undefined,
+  isToday: boolean
+): string | undefined {
+  if (record?.isPaidLeave) return isToday ? '#d1fae5' : '#ecfdf5';
+  if (!record) return isToday ? '#eef2ff' : undefined;
+  const left = record.clockIn ? getMoodBgColor(record.clockIn.mood) : '#ffffff';
+  const right = record.clockOut ? getEffortBgColor(record.clockOut.mood) : '#ffffff';
+  if (record.clockIn || record.clockOut) {
+    return `linear-gradient(to right, ${left} 50%, ${right} 50%)`;
+  }
+  return isToday ? '#eef2ff' : '#f9fafb';
+}
+
 function formatTime(isoString: string): string {
   return new Date(isoString).toLocaleTimeString('ja-JP', {
     hour: '2-digit',
@@ -182,24 +218,14 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
 
             const isWeekday = dayOfWeek !== 0 && dayOfWeek !== 6 && !isHoliday;
 
-            const performance = record?.performance;
-            const bgClass = performance === 'great'
-              ? isToday ? 'bg-emerald-100 ring-2 ring-indigo-400' : 'bg-emerald-50'
-              : performance === 'poor'
-              ? isToday ? 'bg-rose-100 ring-2 ring-indigo-400' : 'bg-rose-50'
-              : isToday ? 'bg-indigo-50 ring-2 ring-indigo-400'
-              : record ? 'bg-gray-50' : '';
-            const hoverClass = performance === 'great'
-              ? 'hover:bg-emerald-100'
-              : performance === 'poor'
-              ? 'hover:bg-rose-100'
-              : 'hover:bg-indigo-50';
+            const cellBg = getCellBackground(record, isToday);
 
             return (
               <div
                 key={dateStr}
                 onClick={() => isWeekday && setSelectedDate(dateStr)}
-                className={`rounded-lg p-1 min-h-14 flex flex-col ${bgClass} ${isWeekday ? `cursor-pointer ${hoverClass} transition-colors` : ''}`}
+                style={cellBg ? { background: cellBg } : undefined}
+                className={`rounded-lg p-1 min-h-14 flex flex-col ${isToday ? 'ring-2 ring-indigo-400' : ''} ${isWeekday ? 'cursor-pointer hover:shadow-sm transition-shadow' : ''}`}
               >
                 {/* 日付番号 */}
                 <span
@@ -251,13 +277,6 @@ export default function CalendarView({ records, t, lang, onUpdateRecord }: Props
                             </span>
                             <span className="text-[10px] text-purple-500 leading-none font-medium">
                               {formatTime(record.clockOut.time)}
-                            </span>
-                          </div>
-                        )}
-                        {record.performance && (
-                          <div className="flex items-center gap-0.5 mt-0.5">
-                            <span className="text-xs leading-none">
-                              {record.performance === 'great' ? '✨' : '💧'}
                             </span>
                           </div>
                         )}

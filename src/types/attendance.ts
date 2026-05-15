@@ -28,13 +28,10 @@ export interface ClockEntry {
   message: string;
 }
 
-export type DayPerformance = 'great' | 'poor';
-
 export interface AttendanceRecord {
   id: string;
   date: string; // YYYY-MM-DD
   isPaidLeave?: boolean;
   clockIn?: ClockEntry;
   clockOut?: ClockEntry;
-  performance?: DayPerformance;
 }
